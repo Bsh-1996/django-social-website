@@ -4,6 +4,8 @@ from django.contrib.auth.decorators import login_required
 from .forms import ImageCreateForm
 from django.shortcuts import get_object_or_404
 from . models import Image
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
 # Create your views here.
 
 
@@ -34,3 +36,26 @@ def image_create(request):
 def image_detail(request, id, slug):
     image = get_object_or_404(Image, id=id, slug=slug)
     return render(request, 'images/image/detail.html', {'section': 'images', 'image': image})
+
+
+
+@login_required
+@require_POST
+def image_like(request):
+    image_id = request.POST.get('id')  # Get the image id from the POST data
+    action = request.POST.get('action')  # Get the action ('like' or 'unlike') from the POST data
+    
+    if image_id and action:
+        try:
+            image = Image.objects.get(id=image_id)  # Retrieve the image object
+            if action == 'like':
+                image.users_like.add(request.user)  # Add user to 'users_like' field
+            else:
+                image.users_like.remove(request.user)  # Remove user from 'users_like' field
+            return JsonResponse({'status': 'ok'})  # Send success response
+        except Image.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Image not found'})  # Handle image not found
+    return JsonResponse({'status': 'error', 'message': 'Invalid request'})  # Handle missing parameters
+
+
+
